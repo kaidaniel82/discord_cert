@@ -24,6 +24,8 @@ DEALINGS IN THE SOFTWARE.
 
 from __future__ import annotations
 
+import ssl
+import certifi
 import asyncio
 import logging
 import sys
@@ -524,6 +526,9 @@ class HTTPClient:
         user_agent = 'DiscordBot (https://github.com/Rapptz/discord.py {0}) Python/{1[0]}.{1[1]} aiohttp/{2}'
         self.user_agent: str = user_agent.format(__version__, sys.version_info, aiohttp.__version__)
 
+        cert_path = certifi.where()
+        self.ssl_context = ssl.create_default_context(cafile=cert_path)
+
     def clear(self) -> None:
         if self.__session and self.__session.closed:
             self.__session = MISSING
@@ -541,6 +546,7 @@ class HTTPClient:
             'compress': compress,
         }
 
+        kwargs['ssl'] = self.ssl_context
         return await self.__session.ws_connect(url, **kwargs)
 
     def _try_clear_expired_ratelimits(self) -> None:
@@ -629,6 +635,7 @@ class HTTPClient:
                     kwargs['data'] = form_data
 
                 try:
+                    kwargs['ssl'] = self.ssl_context
                     async with self.__session.request(method, url, **kwargs) as response:
                         _log.debug('%s %s with %s has returned %s', method, url, kwargs.get('data'), response.status)
 
